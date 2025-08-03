@@ -1,45 +1,43 @@
-version: "3"
+version: '3.8'
 
 services:
-  rabbitmq:
-    image: rabbitmq:management-alpine
-    tty: true
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434" # Map Ollama's API port to your host
     volumes:
-      - rabbitmq_data:/var/lib/rabbitmq # Persistent volume for RabbitMQ data
+      - ollama_data:/root/.ollama # Persistent storage for models
+    restart: unless-stopped
     environment:
-      RABBITMQ_DEFAULT_USER: "mikelopster" # Set default RabbitMQ user
-      RABBITMQ_DEFAULT_PASS: "password" # Set default RabbitMQ password
-    ports:
-      - "15672:15672"
-      - "5672:5672"
+      # This allows Ollama to be accessible from other containers in the Docker network
+      # and from your host machine.
+      - OLLAMA_HOST=0.0.0.0
 
-  mysql:
-    image: mysql:8.0
-    container_name: mysql
-    command: --default-authentication-plugin=mysql_native_password
-    environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: orders
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
+    # === OPTIONAL: GPU SUPPORT CONFIGURATION ===
+    # Uncomment the relevant section below if you have a GPU and want to use it.
+    # Ensure you have the necessary drivers and NVIDIA Container Toolkit (for NVIDIA)
+    # or are using the 'rocm' image (for AMD) installed on your host.
 
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    container_name: phpmyadmin
-    environment:
-      PMA_HOST: mysql
-      PMA_USER: root
-      PMA_PASSWORD: rootpassword
-      MYSQL_ROOT_PASSWORD: rootpassword
-    ports:
-      - "8080:80"
-    depends_on:
-      - mysql
+    # For NVIDIA GPUs (Linux):
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all # or specify a number, e.g., 'count: 1'
+    #           capabilities: [gpu]
+
+    # For AMD GPUs (Linux):
+    # Change 'image: ollama/ollama:latest' above to 'image: ollama/ollama:rocm'
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: amd
+    #           count: all
+    #           capabilities: [gpu]
 
 volumes:
-  rabbitmq_data:
-    driver: local
-  mysql_data:
+  ollama_data:
     driver: local
